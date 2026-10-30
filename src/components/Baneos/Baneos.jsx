@@ -10,7 +10,6 @@ const Baneos = () => {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  // Este nombre es provisional: lo conectaremos con el login.
   const getToken = () =>
     localStorage.getItem("token") ||
     localStorage.getItem("accessToken");

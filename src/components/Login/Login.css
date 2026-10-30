@@ -1,0 +1,37 @@
+body{
+    background-image: url("/public/Images/Fondo2.jpg");
+}
+
+.main-Login{
+    display: flex;
+    align-items: center;
+    margin: 10rem;
+    flex-direction: column;
+    gap: 1.5rem;
+    color: #eef0f2;
+}
+
+.form-UserName{
+    display: flex;
+    flex-direction: column;
+    width: 30rem;
+}
+
+.form-UserName input{
+    border-radius: 1rem;
+    text-align: center;
+    border-color: #000000;
+}
+
+.button-Login{
+    display: flex;
+    justify-content: center;
+    width: 30rem;
+    flex-direction: column;
+    margin-top: 1.2rem;
+    border-radius: 10rem;
+    background-color: #50849D;
+    border-color: #adaca9;
+    box-decoration-break: clone;
+    border: none;
+}

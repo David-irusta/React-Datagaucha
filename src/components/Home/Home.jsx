@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState } from "react";
 import { getBans } from "../../services/banService";
 import "./Home.css";

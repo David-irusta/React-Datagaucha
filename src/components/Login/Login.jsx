@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { login } from "../../services/authService";
+import "./Login.css"
 
 const Login = () => {
   const [userName, setUserName] = useState("");
@@ -25,13 +26,10 @@ const Login = () => {
   };
 
   return (
-    <main style={{ maxWidth: "400px", margin: "40px auto", padding: "20px" }}>
+    <main className="main-Login">
       <h1>Iniciar sesión</h1>
 
-      <form
-        onSubmit={handleSubmit}
-        style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-      >
+      <form className="form-UserName" onSubmit={handleSubmit}>
         <label htmlFor="userName">Nombre de usuario</label>
         <input
           id="userName"
@@ -51,9 +49,9 @@ const Login = () => {
           required
         />
 
-        {error && <p role="alert" style={{ color: "red" }}>{error}</p>}
+        {error && <p role="alert">{error}</p>}
 
-        <button type="submit" disabled={loading}>
+        <button className="button-Login" type="submit" disabled={loading}>
           {loading ? "Ingresando..." : "Iniciar sesión"}
         </button>
       </form>
