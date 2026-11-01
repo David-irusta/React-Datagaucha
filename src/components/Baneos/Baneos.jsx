@@ -1,37 +1,63 @@
+
 import { useCallback, useEffect, useState } from "react";
+import Swal from "sweetalert2";
 import "./Baneos.css";
-import { getBans, createBan, deleteBan } from "../../services/banService";
+
+const API_URL =
+  (process.env.REACT_APP_API_URL || "http://localhost:5033/api").replace(/\/$/, "");
+
+// Función centralizada para realizar peticiones HTTP.
+const request = async (endpoint, options = {}) => {
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+  const text = await response.text();
+  let data = null;
+
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data?.message ||
+      data?.error ||
+      `Error HTTP ${response.status}`
+    );
+  }
+
+  return data;
+};
 
 const Baneos = () => {
   const [baneos, setBaneos] = useState([]);
   const [userId, setUserId] = useState("");
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
 
-  const getToken = () =>
-    localStorage.getItem("token") ||
-    localStorage.getItem("accessToken");
-
+  // READ: obtener todos los baneos de la página actual.
   const cargarBaneos = useCallback(async () => {
-    const token = getToken();
-
-    if (!token) {
-      setError(
-        "Todavía no hay un token JWT. Necesitamos conectar el inicio de sesión para consultar los baneos."
-      );
-      return;
-    }
-
     setLoading(true);
-    setError("");
 
     try {
-      const response = await getBans(token, 1, 10);
+      const response = await request(
+        "/ban?currentPage=1&pageSize=10"
+      );
+
       setBaneos(response?.payload ?? []);
-    } catch (err) {
-      setError(err.message || "No se pudieron cargar los baneos.");
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Error al cargar los baneos",
+        text: error.message,
+      });
     } finally {
       setLoading(false);
     }
@@ -41,78 +67,153 @@ const Baneos = () => {
     cargarBaneos();
   }, [cargarBaneos]);
 
+  // CREATE: crear un nuevo baneo.
+  const crearBaneo = async (e) => {
+    e.preventDefault();
 
-const crearBaneo = async (e) => {
-  e.preventDefault();
+    const usuarioABanearId = Number(userId);
 
-  setError("");
-  setMessage("");
-
-  const token = localStorage.getItem("token");
-  const usuarioLogueadoId = localStorage.getItem("userId");
-  const usuarioABanearId = Number(userId);
-
-  if (!token || !usuarioLogueadoId) {
-    setError("Debés iniciar sesión nuevamente.");
-    return;
-  }
-
-  if (
-    !userId ||
-    !Number.isInteger(usuarioABanearId) ||
-    usuarioABanearId <= 0 ||
-    !reason.trim()
-  ) {
-    setError("Ingresá un ID de usuario válido y el motivo del baneo.");
-    return;
-  }
-
-  if (usuarioABanearId === Number(usuarioLogueadoId)) {
-    setError("No podés banear al usuario que tiene la sesión iniciada.");
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const response = await createBan({ userId, reason }, token);
-
-    setMessage(response?.message || "Baneo creado correctamente.");
-    setUserId("");
-    setReason("");
-
-    await cargarBaneos();
-  } catch (err) {
-    setError(err.message || "No se pudo crear el baneo.");
-  } finally {
-    setLoading(false);
-  }
-};
-
-
-  const eliminarBaneo = async (id) => {
-    const token = getToken();
-
-    if (!token) {
-      setError("Primero necesitamos obtener un token JWT válido.");
+    if (
+      !userId ||
+      !Number.isInteger(usuarioABanearId) ||
+      usuarioABanearId <= 0
+    ) {
+      Swal.fire({
+        icon: "warning",
+        title: "ID inválido",
+        text: "Ingresá un ID de usuario válido.",
+      });
       return;
     }
 
-    if (!window.confirm("¿Seguro que querés eliminar este baneo?")) {
+    if (!reason.trim()) {
+      Swal.fire({
+        icon: "warning",
+        title: "Motivo obligatorio",
+        text: "Debés ingresar el motivo del baneo.",
+      });
       return;
     }
 
-    setError("");
-    setMessage("");
     setLoading(true);
 
     try {
-      const response = await deleteBan(id, token);
+      const response = await request("/ban", {
+        method: "POST",
+        body: JSON.stringify({
+          userId: usuarioABanearId,
+          reason: reason.trim(),
+        }),
+      });
 
-      setMessage(response?.message || "Baneo eliminado correctamente.");
+      setUserId("");
+      setReason("");
+
       await cargarBaneos();
-    } catch (err) {
-      setError(err.message || "No se pudo eliminar el baneo.");
+
+      await Swal.fire({
+        icon: "success",
+        title: "Baneo creado",
+        text: response?.message || "Usuario baneado correctamente.",
+      });
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "No se pudo crear el baneo",
+        text: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // UPDATE: editar el motivo de un baneo.
+  const editarBaneo = async (baneo) => {
+    const resultado = await Swal.fire({
+      title: "Editar baneo",
+      text: `Usuario: ${baneo.userName || baneo.userId}`,
+      input: "textarea",
+      inputLabel: "Motivo del baneo",
+      inputValue: baneo.reason,
+      inputPlaceholder: "Ingresá el nuevo motivo...",
+      showCancelButton: true,
+      confirmButtonText: "Guardar cambios",
+      cancelButtonText: "Cancelar",
+      inputValidator: (value) => {
+        if (!value || !value.trim()) {
+          return "El motivo del baneo es obligatorio.";
+        }
+
+        if (value.trim().length > 500) {
+          return "El motivo no puede superar los 500 caracteres.";
+        }
+      },
+    });
+
+    if (!resultado.isConfirmed) return;
+
+    setLoading(true);
+
+    try {
+      const response = await request(`/ban/${baneo.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          reason: resultado.value.trim(),
+        }),
+      });
+
+      await cargarBaneos();
+
+      await Swal.fire({
+        icon: "success",
+        title: "Baneo actualizado",
+        text: response?.message || "Baneo editado correctamente.",
+      });
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "No se pudo editar el baneo",
+        text: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // DELETE: eliminar un baneo.
+  const eliminarBaneo = async (id) => {
+    const resultado = await Swal.fire({
+      icon: "warning",
+      title: "¿Eliminar este baneo?",
+      text: "Esta acción eliminará el registro del baneo.",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#d33",
+    });
+
+    if (!resultado.isConfirmed) return;
+
+    setLoading(true);
+
+    try {
+      const response = await request(`/ban/${id}`, {
+        method: "DELETE",
+      });
+
+      await cargarBaneos();
+
+      await Swal.fire({
+        icon: "success",
+        title: "Baneo eliminado",
+        text: response?.message || "Baneo eliminado correctamente.",
+      });
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "No se pudo eliminar el baneo",
+        text: error.message,
+      });
     } finally {
       setLoading(false);
     }
@@ -122,10 +223,10 @@ const crearBaneo = async (e) => {
     <main className="baneos-container">
       <h1>Administración de baneos</h1>
 
-      {error && <p role="alert" className="baneo-error">{error}</p>}
-      {message && <p className="baneo-message">{message}</p>}
-
+      {/* FORMULARIO PARA CREAR BANEOS */}
       <form className="baneo-form" onSubmit={crearBaneo}>
+        <h2>Crear nuevo baneo</h2>
+
         <label htmlFor="userId">ID del usuario</label>
         <input
           id="userId"
@@ -133,6 +234,7 @@ const crearBaneo = async (e) => {
           min="1"
           value={userId}
           onChange={(e) => setUserId(e.target.value)}
+          placeholder="Ingresá el ID del usuario"
           required
         />
 
@@ -141,6 +243,8 @@ const crearBaneo = async (e) => {
           id="reason"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
+          maxLength={500}
+          placeholder="Ingresá el motivo del baneo"
           required
         />
 
@@ -149,16 +253,21 @@ const crearBaneo = async (e) => {
         </button>
       </form>
 
+      {/* LISTADO DE BANEOS */}
       <section className="baneos-lista">
         <h2>Baneos registrados</h2>
 
-        <button type="button" onClick={cargarBaneos} disabled={loading}>
+        <button
+          type="button"
+          onClick={cargarBaneos}
+          disabled={loading}
+        >
           Actualizar lista
         </button>
 
         {loading && <p>Cargando...</p>}
 
-        {!loading && baneos.length === 0 && !error && (
+        {!loading && baneos.length === 0 && (
           <p>No hay baneos registrados.</p>
         )}
 
@@ -173,6 +282,7 @@ const crearBaneo = async (e) => {
                 <th>Acciones</th>
               </tr>
             </thead>
+
             <tbody>
               {baneos.map((baneo) => (
                 <tr key={baneo.id}>
@@ -185,6 +295,14 @@ const crearBaneo = async (e) => {
                       : "Sin fecha"}
                   </td>
                   <td>
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={() => editarBaneo(baneo)}
+                    >
+                      Editar
+                    </button>
+
                     <button
                       type="button"
                       disabled={loading}
