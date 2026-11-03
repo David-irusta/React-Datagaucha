@@ -1,0 +1,12 @@
+.body-error {
+    background-image: url("/public/Images/error404quees.jpg");
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.body-error img {
+    max-width: 100%;
+    height: auto;
+}

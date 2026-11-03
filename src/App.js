@@ -7,7 +7,6 @@ import Baneos from "./components/Baneos/Baneos";
 import Users from "./components/Users/Users";
 import Error from "./components/Error/Error";
 import Main from "./components/Main/Main";
-import Login from "./components/Login/Login";
 
 function App() {
   return (
@@ -15,11 +14,10 @@ function App() {
       <NavBar />
 
       <Routes>
-        <Route path="/login" element={<Login />} />
-
         <Route path="/" element={<Main />}>
-          <Route index element={<Navigate to="/login" replace />} />
+          <Route index element={<Navigate to="/home" replace />} />
           <Route path="bans" element={<Baneos />} />
+          <Route path="bans/:idBan" element={<Baneos />} />
           <Route path="users/:idUser" element={<Users />} />
           <Route path="users" element={<Users />} />
           <Route path="error" element={<Error />} />

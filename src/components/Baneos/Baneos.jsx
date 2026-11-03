@@ -1,12 +1,12 @@
-
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import Swal from "sweetalert2";
 import "./Baneos.css";
 
-const API_URL =
-  (process.env.REACT_APP_API_URL || "http://localhost:5033/api").replace(/\/$/, "");
+const API_URL = (
+  process.env.REACT_APP_API_URL || "http://localhost:5033/api"
+).replace(/\/+$/, "");
 
-// Función centralizada para realizar peticiones HTTP.
 const request = async (endpoint, options = {}) => {
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
@@ -36,47 +36,67 @@ const request = async (endpoint, options = {}) => {
   return data;
 };
 
+// Convertir fecha para el input datetime-local.
+const convertirFechaLocal = (fecha) => {
+  if (!fecha) return "";
+
+  const date = new Date(fecha);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  const offset = date.getTimezoneOffset() * 60000;
+
+  return new Date(date.getTime() - offset)
+    .toISOString()
+    .slice(0, 16);
+};
+
 const Baneos = () => {
-  const [baneos, setBaneos] = useState([]);
-  const [userId, setUserId] = useState("");
-  const [reason, setReason] = useState("");
+  const { idBan } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const baneo = location.state?.baneo;
+  const editando = Boolean(idBan);
+
+  const [userId, setUserId] = useState(
+    baneo?.userId?.toString() || ""
+  );
+  const [reason, setReason] = useState(baneo?.reason || "");
+  const [bannedAt, setBannedAt] = useState(
+    convertirFechaLocal(baneo?.bannedAt)
+  );
+  const [expiresAt, setExpiresAt] = useState(
+    convertirFechaLocal(baneo?.expiresAt)
+  );
   const [loading, setLoading] = useState(false);
 
-  // READ: obtener todos los baneos de la página actual.
-  const cargarBaneos = useCallback(async () => {
-    setLoading(true);
-
-    try {
-      const response = await request(
-        "/ban?currentPage=1&pageSize=10"
-      );
-
-      setBaneos(response?.payload ?? []);
-    } catch (error) {
-      Swal.fire({
-        icon: "error",
-        title: "Error al cargar los baneos",
-        text: error.message,
-      });
-    } finally {
-      setLoading(false);
+  // Cargar los datos recibidos desde Home.
+  useEffect(() => {
+    if (baneo) {
+      setUserId(baneo.userId?.toString() || "");
+      setReason(baneo.reason || "");
+      setBannedAt(convertirFechaLocal(baneo.bannedAt));
+      setExpiresAt(convertirFechaLocal(baneo.expiresAt));
     }
-  }, []);
+  }, [baneo]);
 
   useEffect(() => {
-    cargarBaneos();
-  }, [cargarBaneos]);
+    if (editando && !baneo) {
+      navigate("/error", { replace: true });
+    }
+  }, [editando, baneo, navigate]);
 
-  // CREATE: crear un nuevo baneo.
-  const crearBaneo = async (e) => {
+  const guardarBaneo = async (e) => {
     e.preventDefault();
 
     const usuarioABanearId = Number(userId);
 
     if (
-      !userId ||
-      !Number.isInteger(usuarioABanearId) ||
-      usuarioABanearId <= 0
+      !editando &&
+      (!userId ||
+        !Number.isInteger(usuarioABanearId) ||
+        usuarioABanearId <= 0)
     ) {
       Swal.fire({
         icon: "warning",
@@ -95,123 +115,91 @@ const Baneos = () => {
       return;
     }
 
-    setLoading(true);
-
-    try {
-      const response = await request("/ban", {
-        method: "POST",
-        body: JSON.stringify({
-          userId: usuarioABanearId,
-          reason: reason.trim(),
-        }),
-      });
-
-      setUserId("");
-      setReason("");
-
-      await cargarBaneos();
-
-      await Swal.fire({
-        icon: "success",
-        title: "Baneo creado",
-        text: response?.message || "Usuario baneado correctamente.",
-      });
-    } catch (error) {
+    if (!bannedAt) {
       Swal.fire({
-        icon: "error",
-        title: "No se pudo crear el baneo",
-        text: error.message,
+        icon: "warning",
+        title: "Fecha obligatoria",
+        text: "Debés ingresar la fecha desde.",
       });
-    } finally {
-      setLoading(false);
+      return;
     }
-  };
 
-  // UPDATE: editar el motivo de un baneo.
-  const editarBaneo = async (baneo) => {
-    const resultado = await Swal.fire({
-      title: "Editar baneo",
-      text: `Usuario: ${baneo.userName || baneo.userId}`,
-      input: "textarea",
-      inputLabel: "Motivo del baneo",
-      inputValue: baneo.reason,
-      inputPlaceholder: "Ingresá el nuevo motivo...",
-      showCancelButton: true,
-      confirmButtonText: "Guardar cambios",
-      cancelButtonText: "Cancelar",
-      inputValidator: (value) => {
-        if (!value || !value.trim()) {
-          return "El motivo del baneo es obligatorio.";
-        }
+    const fechaInicio = new Date(bannedAt);
 
-        if (value.trim().length > 500) {
-          return "El motivo no puede superar los 500 caracteres.";
-        }
-      },
-    });
-
-    if (!resultado.isConfirmed) return;
-
-    setLoading(true);
-
-    try {
-      const response = await request(`/ban/${baneo.id}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          reason: resultado.value.trim(),
-        }),
-      });
-
-      await cargarBaneos();
-
-      await Swal.fire({
-        icon: "success",
-        title: "Baneo actualizado",
-        text: response?.message || "Baneo editado correctamente.",
-      });
-    } catch (error) {
+    if (Number.isNaN(fechaInicio.getTime())) {
       Swal.fire({
-        icon: "error",
-        title: "No se pudo editar el baneo",
-        text: error.message,
+        icon: "warning",
+        title: "Fecha inválida",
+        text: "La fecha desde no es válida.",
       });
-    } finally {
-      setLoading(false);
+      return;
     }
-  };
 
-  // DELETE: eliminar un baneo.
-  const eliminarBaneo = async (id) => {
-    const resultado = await Swal.fire({
-      icon: "warning",
-      title: "¿Eliminar este baneo?",
-      text: "Esta acción eliminará el registro del baneo.",
-      showCancelButton: true,
-      confirmButtonText: "Sí, eliminar",
-      cancelButtonText: "Cancelar",
-      confirmButtonColor: "#d33",
-    });
+    let fechaFin = null;
 
-    if (!resultado.isConfirmed) return;
+    if (expiresAt) {
+      fechaFin = new Date(expiresAt);
+
+      if (
+        Number.isNaN(fechaFin.getTime()) ||
+        fechaFin <= fechaInicio
+      ) {
+        Swal.fire({
+          icon: "warning",
+          title: "Fechas inválidas",
+          text: "La fecha hasta debe ser posterior a la fecha desde.",
+        });
+        return;
+      }
+    }
 
     setLoading(true);
 
     try {
-      const response = await request(`/ban/${id}`, {
-        method: "DELETE",
-      });
+      const datos = {
+        reason: reason.trim(),
+        bannedAt: fechaInicio.toISOString(),
+        expiresAt: fechaFin
+          ? fechaFin.toISOString()
+          : null,
+      };
 
-      await cargarBaneos();
+      let response;
+
+      if (editando) {
+        // Actualizar un baneo existente.
+        response = await request(`/ban/${idBan}`, {
+          method: "PUT",
+          body: JSON.stringify(datos),
+        });
+      } else {
+        // Crear un nuevo baneo.
+        response = await request("/ban", {
+          method: "POST",
+          body: JSON.stringify({
+            userId: usuarioABanearId,
+            ...datos,
+          }),
+        });
+      }
 
       await Swal.fire({
         icon: "success",
-        title: "Baneo eliminado",
-        text: response?.message || "Baneo eliminado correctamente.",
+        title: editando ? "Baneo actualizado" : "Baneo creado",
+        text:
+          response?.message ||
+          (editando
+            ? "Los datos se modificaron correctamente."
+            : "Usuario baneado correctamente."),
       });
+
+      navigate("/home");
     } catch (error) {
       Swal.fire({
         icon: "error",
-        title: "No se pudo eliminar el baneo",
+        title: editando
+          ? "No se pudo actualizar el baneo"
+          : "No se pudo crear el baneo",
         text: error.message,
       });
     } finally {
@@ -223,100 +211,47 @@ const Baneos = () => {
     <main className="baneos-container">
       <h1>Administración de baneos</h1>
 
-      {/* FORMULARIO PARA CREAR BANEOS */}
-      <form className="baneo-form" onSubmit={crearBaneo}>
-        <h2>Crear nuevo baneo</h2>
+      <form className="baneo-form" onSubmit={guardarBaneo}>
+        <h2>
+          {editando ? "Editar baneo" : "Crear nuevo baneo"}
+        </h2>
 
         <label htmlFor="userId">ID del usuario</label>
-        <input
-          id="userId"
-          type="number"
-          min="1"
-          value={userId}
-          onChange={(e) => setUserId(e.target.value)}
-          placeholder="Ingresá el ID del usuario"
-          required
+        <input id="userId" type="number" min="1" value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="Ingresá el ID del usuario" disabled={editando} required
         />
 
         <label htmlFor="reason">Motivo del baneo</label>
-        <textarea
-          id="reason"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          maxLength={500}
-          placeholder="Ingresá el motivo del baneo"
-          required
+        <textarea id="reason" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} placeholder="Ingresá el motivo del baneo" required
         />
 
-        <button type="submit" disabled={loading}>
-          Crear baneo
-        </button>
-      </form>
+        <label htmlFor="bannedAt">Fecha desde</label>
+        <input id="bannedAt" type="datetime-local" value={bannedAt} onChange={(e) => setBannedAt(e.target.value)} required
+        />
 
-      {/* LISTADO DE BANEOS */}
-      <section className="baneos-lista">
-        <h2>Baneos registrados</h2>
+        <label htmlFor="expiresAt">Fecha hasta</label>
+        <input id="expiresAt" type="datetime-local" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)}
+        />
+
+        <small>
+          Dejá la fecha hasta vacía si el baneo no tiene vencimiento.
+        </small>
+
+        <button type="submit" disabled={loading}>
+          {loading
+            ? "Guardando..."
+            : editando
+              ? "Guardar cambios"
+              : "Crear baneo"}
+        </button>
 
         <button
           type="button"
-          onClick={cargarBaneos}
+          onClick={() => navigate("/home")}
           disabled={loading}
         >
-          Actualizar lista
+          Cancelar
         </button>
-
-        {loading && <p>Cargando...</p>}
-
-        {!loading && baneos.length === 0 && (
-          <p>No hay baneos registrados.</p>
-        )}
-
-        {baneos.length > 0 && (
-          <table>
-            <thead>
-              <tr>
-                <th>ID del baneo</th>
-                <th>Usuario</th>
-                <th>Motivo</th>
-                <th>Fecha</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {baneos.map((baneo) => (
-                <tr key={baneo.id}>
-                  <td>{baneo.id}</td>
-                  <td>{baneo.userName || baneo.userId}</td>
-                  <td>{baneo.reason}</td>
-                  <td>
-                    {baneo.bannedAt
-                      ? new Date(baneo.bannedAt).toLocaleString()
-                      : "Sin fecha"}
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      disabled={loading}
-                      onClick={() => editarBaneo(baneo)}
-                    >
-                      Editar
-                    </button>
-
-                    <button
-                      type="button"
-                      disabled={loading}
-                      onClick={() => eliminarBaneo(baneo.id)}
-                    >
-                      Eliminar
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
+      </form>
     </main>
   );
 };

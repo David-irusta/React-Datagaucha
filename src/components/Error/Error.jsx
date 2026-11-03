@@ -1,12 +1,10 @@
-import React from 'react'
-import './Error.css'
+import "./Error.css";
 
 const Error = () => {
   return (
-    <div>
-      <h1>Error</h1>
+    <div className="body-error">
     </div>
   );
-}
+};
 
 export default Error;
