@@ -1,7 +1,10 @@
+
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import Swal from "sweetalert2";
 import "./Baneos.css";
+import "../Errors/Errors.css";
+import Errors from "../Errors/Errors";
 
 const API_URL = (
   process.env.REACT_APP_API_URL || "http://localhost:5033/api"
@@ -70,6 +73,7 @@ const Baneos = () => {
     convertirFechaLocal(baneo?.expiresAt)
   );
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // Cargar los datos recibidos desde Home.
   useEffect(() => {
@@ -83,9 +87,9 @@ const Baneos = () => {
 
   useEffect(() => {
     if (editando && !baneo) {
-      navigate("/error", { replace: true });
+      setError("No se encontraron los datos del baneo que quieres editar");
     }
-  }, [editando, baneo, navigate]);
+  }, [editando, baneo]);
 
   const guardarBaneo = async (e) => {
     e.preventDefault();
@@ -98,40 +102,24 @@ const Baneos = () => {
         !Number.isInteger(usuarioABanearId) ||
         usuarioABanearId <= 0)
     ) {
-      Swal.fire({
-        icon: "warning",
-        title: "ID inválido",
-        text: "Ingresá un ID de usuario válido.",
-      });
+      setError("Debes ingresar un ID valido");
       return;
     }
 
     if (!reason.trim()) {
-      Swal.fire({
-        icon: "warning",
-        title: "Motivo obligatorio",
-        text: "Debés ingresar el motivo del baneo.",
-      });
+      setError("Debés ingresar el motivo del baneo.");
       return;
     }
 
     if (!bannedAt) {
-      Swal.fire({
-        icon: "warning",
-        title: "Fecha obligatoria",
-        text: "Debés ingresar la fecha desde.",
-      });
+      setError("Debes ingresar una fecha");
       return;
     }
 
     const fechaInicio = new Date(bannedAt);
 
     if (Number.isNaN(fechaInicio.getTime())) {
-      Swal.fire({
-        icon: "warning",
-        title: "Fecha inválida",
-        text: "La fecha desde no es válida.",
-      });
+      setError("Debés ingresar una fecha inicial válida.");
       return;
     }
 
@@ -144,11 +132,7 @@ const Baneos = () => {
         Number.isNaN(fechaFin.getTime()) ||
         fechaFin <= fechaInicio
       ) {
-        Swal.fire({
-          icon: "warning",
-          title: "Fechas inválidas",
-          text: "La fecha hasta debe ser posterior a la fecha desde.",
-        });
+        setError("la fecha de caducidad debe de ser posterior a la de inicio");
         return;
       }
     }
@@ -195,63 +179,97 @@ const Baneos = () => {
 
       navigate("/home");
     } catch (error) {
-      Swal.fire({
-        icon: "error",
-        title: editando
-          ? "No se pudo actualizar el baneo"
-          : "No se pudo crear el baneo",
-        text: error.message,
-      });
+      setError(
+        error.message ||
+        (editando
+          ? "No se pudo actualizar el baneo."
+          : "No se pudo crear el baneo.")
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="baneos-container">
-      <h1>Administración de baneos</h1>
+    <main className="bans-container">
 
-      <form className="baneo-form" onSubmit={guardarBaneo}>
-        <h2>
-          {editando ? "Editar baneo" : "Crear nuevo baneo"}
-        </h2>
+      {editando && !baneo && (
+        <div className="error-404">
+          <img
+            src="/images/error404quess.jpg"
+            alt="Error 404 - Página no encontrada"
+          />
+        </div>
+      )}
 
-        <label htmlFor="userId">ID del usuario</label>
-        <input id="userId" type="number" min="1" value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="Ingresá el ID del usuario" disabled={editando} required
-        />
+      {(!editando || baneo) && (
+        <form className="ban-form" onSubmit={guardarBaneo}>
+          <h2>
+            {editando ? "Editar baneo" : "Crear nuevo baneo"}
+          </h2>
 
-        <label htmlFor="reason">Motivo del baneo</label>
-        <textarea id="reason" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} placeholder="Ingresá el motivo del baneo" required
-        />
+          <Errors mensaje={error} />
 
-        <label htmlFor="bannedAt">Fecha desde</label>
-        <input id="bannedAt" type="datetime-local" value={bannedAt} onChange={(e) => setBannedAt(e.target.value)} required
-        />
+          <label htmlFor="userId">ID del usuario</label>
+          <input
+            id="userId"
+            type="number"
+            min="1"
+            value={userId}
+            onChange={(e) => setUserId(e.target.value)}
+            placeholder="Ingresá el ID del usuario"
+            disabled={editando}
+            required
+          />
 
-        <label htmlFor="expiresAt">Fecha hasta</label>
-        <input id="expiresAt" type="datetime-local" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)}
-        />
+          <label htmlFor="reason">Motivo del baneo</label>
+          <textarea
+            id="reason"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            maxLength={500}
+            placeholder="Ingresá el motivo del baneo"
+            required
+          />
 
-        <small>
-          Dejá la fecha hasta vacía si el baneo no tiene vencimiento.
-        </small>
+          <label htmlFor="bannedAt">Fecha desde</label>
+          <input
+            id="bannedAt"
+            type="datetime-local"
+            value={bannedAt}
+            onChange={(e) => setBannedAt(e.target.value)}
+            required
+          />
 
-        <button type="submit" disabled={loading}>
-          {loading
-            ? "Guardando..."
-            : editando
-              ? "Guardar cambios"
-              : "Crear baneo"}
-        </button>
+          <label htmlFor="expiresAt">Fecha hasta</label>
+          <input
+            id="expiresAt"
+            type="datetime-local"
+            value={expiresAt}
+            onChange={(e) => setExpiresAt(e.target.value)}
+          />
 
-        <button
-          type="button"
-          onClick={() => navigate("/home")}
-          disabled={loading}
-        >
-          Cancelar
-        </button>
-      </form>
+          <small>
+            Dejá la fecha hasta vacía si el baneo no tiene vencimiento.
+          </small>
+
+          <button type="submit" disabled={loading}>
+            {loading
+              ? "Guardando..."
+              : editando
+                ? "Guardar cambios"
+                : "Crear baneo"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate("/home")}
+            disabled={loading}
+          >
+            Cancelar
+          </button>
+        </form>
+      )}
     </main>
   );
 };

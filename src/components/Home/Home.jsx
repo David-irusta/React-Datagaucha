@@ -2,10 +2,18 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import "./Home.css";
+import Paginator from "../Paginator/Paginator";
+import Errors from "../Errors/Errors";
 
-const API_URL = (process.env.REACT_APP_API_URL || "http://localhost:5033/api").replace(/\/+$/, "");
+const API_URL = (
+  process.env.REACT_APP_API_URL || "http://localhost:5033/api"
+).replace(/\/+$/, "");
 
 const Home = () => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(4);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
   const navigate = useNavigate();
   const [baneos, setBaneos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,27 +39,14 @@ const Home = () => {
     } catch {
       data = null;
     }
+
     if (!response.ok) {
       throw new Error(
         data?.message || data?.error || `Error HTTP ${response.status}`
       );
     }
+
     return data;
-  };
-
-  // Convertir fecha para datetime-local.
-  const convertirFechaLocal = (fecha) => {
-    if (!fecha) return "";
-
-    const date = new Date(fecha);
-
-    if (Number.isNaN(date.getTime())) return "";
-
-    const offset = date.getTimezoneOffset() * 60000;
-
-    return new Date(date.getTime() - offset)
-      .toISOString()
-      .slice(0, 16);
   };
 
   // Mostrar fechas en la tabla.
@@ -72,10 +67,12 @@ const Home = () => {
 
     try {
       const response = await request(
-        "/ban?currentPage=1&pageSize=10"
+        `/ban?currentPage=${currentPage}&pageSize=${pageSize}`
       );
 
       setBaneos(response?.payload ?? []);
+      setTotalPages(response?.totalPages ?? 0);
+      setTotalCount(response?.totalCount ?? 0);
       return true;
     } catch (err) {
       setError(err.message || "No se pudieron cargar los baneos.");
@@ -83,7 +80,7 @@ const Home = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentPage, pageSize]);
 
   useEffect(() => {
     cargarBaneos();
@@ -147,11 +144,15 @@ const Home = () => {
       <h1>Inicio</h1>
       <p>Panel de administración de DataGaucha</p>
 
-      <section className="home-baneos">
-        <div className="home-baneos-header">
+      <section className="home-bans">
+        <div className="home-bans-header">
           <h2>Usuarios baneados</h2>
 
-          <button type="button" className="btn-comun" onClick={() => navigate("/bans")} disabled={accionando}
+          <button
+            type="button"
+            className="common-btn"
+            onClick={() => navigate("/bans")}
+            disabled={accionando}
           >
             Crear baneo
           </button>
@@ -159,19 +160,15 @@ const Home = () => {
 
         {loading && <p>Cargando usuarios baneados...</p>}
 
-        {!loading && error && (
-          <p className="home-error" role="alert">
-            {error}
-          </p>
-        )}
+        {!loading && <Errors mensaje={error} />}
 
         {!loading && !error && baneos.length === 0 && (
           <p>No hay usuarios baneados.</p>
         )}
 
         {!loading && !error && baneos.length > 0 && (
-          <div className="home-tabla-contenedor">
-            <table className="home-tabla">
+          <div className="home-table-container">
+            <table className="home-table">
               <thead>
                 <tr>
                   <th>ID del baneo</th>
@@ -198,25 +195,48 @@ const Home = () => {
                     </td>
 
                     <td>
-                      <button type="button" className="btn-motivo" onClick={() => alternarMotivo(baneo.id)} aria-expanded={!!motivosVisibles[baneo.id]}
+                      <button
+                        type="button"
+                        className="reason-btn"
+                        onClick={() => alternarMotivo(baneo.id)}
+                        aria-expanded={!!motivosVisibles[baneo.id]}
                       >
-                        {motivosVisibles[baneo.id]  ? "Ocultar motivo"  : "Ver motivo"}
+                        {motivosVisibles[baneo.id]
+                          ? "Ocultar motivo"
+                          : "Ver motivo"}
                       </button>
                     </td>
 
-                    <td className="button-Home">
-                      <button type="button" className="btn-editar" onClick={() => editarBaneo(baneo)} disabled={accionando}> Editar </button>
+                    <td className="home-buttons">
+                      <button
+                        type="button"
+                        className="edit-btn"
+                        onClick={() => editarBaneo(baneo)}
+                        disabled={accionando}
+                      >
+                        Editar
+                      </button>
 
-                      <button type="button" className="btn-eliminar" onClick={() => eliminarBaneo(baneo.id)} disabled={accionando}> Eliminar </button>
+                      <button
+                        type="button"
+                        className="delete-btn"
+                        onClick={() => eliminarBaneo(baneo.id)}
+                        disabled={accionando}
+                      >
+                        Eliminar
+                      </button>
                     </td>
                   </tr>
                 ))}
 
                 {baneos.map((baneo) =>
                   motivosVisibles[baneo.id] ? (
-                    <tr key={`motivo-${baneo.id}`} className="fila-motivo">
+                    <tr
+                      key={`motivo-${baneo.id}`}
+                      className="reason-row"
+                    >
                       <td colSpan="7">
-                        <div className="motivo-contenido">
+                        <div className="reason-content">
                           <strong>Motivo del baneo:</strong>
                           <p>{baneo.reason || "Sin motivo registrado."}</p>
                         </div>
@@ -226,6 +246,12 @@ const Home = () => {
                 )}
               </tbody>
             </table>
+
+            <Paginator
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
           </div>
         )}
       </section>

@@ -1,4 +1,4 @@
-.body-error {
+.error-404 {
     background-image: url("/public/Images/error404quees.jpg");
     display: flex;
     justify-content: center;
@@ -6,7 +6,7 @@
     min-height: 100vh;
 }
 
-.body-error img {
+.error-404 img {
     max-width: 100%;
     height: auto;
 }

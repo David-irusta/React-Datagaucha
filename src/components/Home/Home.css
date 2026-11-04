@@ -16,14 +16,14 @@ body {
   margin-bottom: 8px;
 }
 
-.home-baneos {
+.home-bans {
   margin-top: 30px;
   padding: 24px;
   background-color: #50849d;
   border-radius: 10px;
 }
 
-.home-baneos-header {
+.home-bans-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -31,11 +31,11 @@ body {
   margin-bottom: 20px;
 }
 
-.home-baneos-header h2 {
+.home-bans-header h2 {
   margin: 0;
 }
 
-.home-baneos button {
+.home-bans button {
   margin: 0.12rem;
   padding: 0.5rem 1rem;
   border: none;
@@ -45,62 +45,58 @@ body {
   transition: opacity 0.2s ease;
 }
 
-.home-baneos button:hover {
+.home-bans button:hover {
   opacity: 0.85;
 }
 
-.home-baneos button:disabled {
+.home-bans button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.btn-editar {
+.edit-btn {
   background-color: green;
 }
 
-.btn-eliminar {
+.delete-btn {
   background-color: #b42318;
 }
 
-.btn-comun {
+.common-btn {
   background-color: #000000;
 }
 
-.btn-crear {
-  background-color: #176b45;
-}
-
-.btn-motivo {
+.reason-btn {
   background-color: #2f3e56;
 }
 
-.home-tabla-contenedor {
+.home-table-contenedor {
   width: 100%;
   overflow-x: auto;
   border-radius: 6px;
 }
 
-.home-tabla {
+.home-table {
   width: 100%;
   border-collapse: collapse;
   background: white;
 }
 
-.home-tabla th,
-.home-tabla td {
+.home-table th,
+.home-table td {
   padding: 12px;
   border-bottom: 1px solid #adaca9;
   text-align: left;
   vertical-align: middle;
 }
 
-.home-tabla th {
+.home-table th {
   background: #2f3e56;
   color: white;
   white-space: nowrap;
 }
 
-.home-tabla td {
+.home-table td {
   color: #222;
 }
 
@@ -108,16 +104,16 @@ body {
   white-space: nowrap;
 }
 
-.fila-motivo td {
+.reason-row td {
   background-color: #eef0f2;
   padding: 16px 20px;
 }
 
-.motivo-contenido {
+.reason-content {
   overflow-wrap: anywhere;
 }
 
-.motivo-contenido p {
+.reason-content p {
   margin: 8px 0 0;
   white-space: pre-wrap;
 }
