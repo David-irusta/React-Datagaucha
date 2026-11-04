@@ -9,17 +9,18 @@ const API_URL = (
   process.env.REACT_APP_API_URL || "http://localhost:5033/api"
 ).replace(/\/+$/, "");
 
+
 const Home = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(4);
+  const [pageSize] = useState(2);
   const [totalPages, setTotalPages] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const navigate = useNavigate();
-  const [baneos, setBaneos] = useState([]);
+  const [bans, setBans] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [accionando, setAccionando] = useState(false);
+  const [accionando, setActivating] = useState(false);
   const [error, setError] = useState("");
-  const [motivosVisibles, setMotivosVisibles] = useState({});
+  const [motivosVisibles, setvisibleMotives] = useState({});
 
   // Comunicarse con la API.
   const request = async (endpoint, options = {}) => {
@@ -42,7 +43,7 @@ const Home = () => {
 
     if (!response.ok) {
       throw new Error(
-        data?.message || data?.error || `Error HTTP ${response.status}`
+        data?.message || data?.mistake || `Error HTTP ${response.status}`
       );
     }
 
@@ -50,18 +51,19 @@ const Home = () => {
   };
 
   // Mostrar fechas en la tabla.
-  const formatearFecha = (fecha) => {
-    if (!fecha) return "Sin fecha";
+  const formatDate = (date) => {
+    if (!date) return "Sin fecha";
 
     const date = new Date(fecha);
 
-    if (Number.isNaN(date.getTime())) return "Fecha inválida";
+    if (Number.isNaN(date.getTime())) 
+      return "Fecha inválida";
 
     return date.toLocaleString("es-AR");
   };
 
   // Obtener baneos.
-  const cargarBaneos = useCallback(async () => {
+  const applyBans = useCallback(async () => {
     setLoading(true);
     setError("");
 
@@ -70,7 +72,7 @@ const Home = () => {
         `/ban?currentPage=${currentPage}&pageSize=${pageSize}`
       );
 
-      setBaneos(response?.payload ?? []);
+      setBans(response?.payload ?? []);
       setTotalPages(response?.totalPages ?? 0);
       setTotalCount(response?.totalCount ?? 0);
       return true;
@@ -83,25 +85,25 @@ const Home = () => {
   }, [currentPage, pageSize]);
 
   useEffect(() => {
-    cargarBaneos();
-  }, [cargarBaneos]);
+    applyBans();
+  }, [applyBans]);
 
   // Mostrar u ocultar motivo.
-  const alternarMotivo = (id) => {
-    setMotivosVisibles((actuales) => ({
-      ...actuales,
-      [id]: !actuales[id],
+  const alternatePattern = (id) => {
+    setvisibleMotives((current) => ({
+      ...current,
+      [id]: !current[id],
     }));
   };
 
-  const editarBaneo = (baneo) => {
-    navigate(`/bans/${baneo.id}`, {
-      state: { baneo },
+  const editBan = (ban) => {
+    navigate(`/bans/${ban.id}`, {
+      state: { ban },
     });
   };
 
   // Eliminar baneo.
-  const eliminarBaneo = async (id) => {
+  const deleteBan = async (id) => {
     const resultado = await Swal.fire({
       title: "¿Eliminar este baneo?",
       text: "Esta acción no se puede deshacer.",
@@ -114,14 +116,14 @@ const Home = () => {
 
     if (!resultado.isConfirmed) return;
 
-    setAccionando(true);
+    setActivating(true);
 
     try {
       await request(`/ban/${id}`, {
         method: "DELETE",
       });
 
-      await cargarBaneos();
+      await applyBans();
 
       await Swal.fire({
         icon: "success",
@@ -135,7 +137,7 @@ const Home = () => {
         text: err.message || "No se pudo eliminar el baneo.",
       });
     } finally {
-      setAccionando(false);
+      setActivating(false);
     }
   };
 
@@ -157,11 +159,11 @@ const Home = () => {
 
         {!loading && <Errors mensaje={error} />}
 
-        {!loading && !error && baneos.length === 0 && (
+        {!loading && !error && bans.length === 0 && (
           <p>No hay usuarios baneados.</p>
         )}
 
-        {!loading && !error && baneos.length > 0 && (
+        {!loading && !error && bans.length > 0 && (
           <div className="home-table-container">
             <table className="home-table">
               <thead>
@@ -177,42 +179,42 @@ const Home = () => {
               </thead>
 
               <tbody>
-                {baneos.map((baneo) => (
-                  <tr key={baneo.id}>
-                    <td>{baneo.id}</td>
-                    <td>{baneo.userId}</td>
-                    <td>{baneo.userName || "Sin nombre"}</td>
-                    <td>{formatearFecha(baneo.bannedAt)}</td>
+                {bans.map((ban) => (
+                  <tr key={ban.id}>
+                    <td>{ban.id}</td>
+                    <td>{ban.userId}</td>
+                    <td>{ban.userName || "Sin nombre"}</td>
+                    <td>{formatDate(ban.bannedAt)}</td>
                     <td>
-                      {baneo.expiresAt
-                        ? formatearFecha(baneo.expiresAt)
+                      {ban.expiresAt
+                        ? formatDate(ban.expiresAt)
                         : "Sin vencimiento"}
                     </td>
 
                     <td>
-                      <button type="button" className="reason-btn" onClick={() => alternarMotivo(baneo.id)} aria-expanded={!!motivosVisibles[baneo.id]}>                        {motivosVisibles[baneo.id]
+                      <button type="button" className="reason-btn" onClick={() => alternatePattern(ban.id)} aria-expanded={!!motivosVisibles[ban.id]}>                        {motivosVisibles[baneo.id]
                           ? "Ocultar motivo"
                           : "Ver motivo"}
                       </button>
                     </td>
-                    <td className="home-buttons"><button type="button" className="edit-btn" onClick={() => editarBaneo(baneo)} disabled={accionando}>
+                    <td className="home-buttons"><button type="button" className="edit-btn" onClick={() => editBan(ban)} disabled={accionando}>
                         Editar
                       </button>
-                      <button type="button" className="delete-btn" onClick={() => eliminarBaneo(baneo.id)} disabled={accionando}>Eliminar</button>
+                      <button type="button" className="delete-btn" onClick={() => deleteBan(ban.id)} disabled={accionando}>Eliminar</button>
                     </td>
                   </tr>
                 ))}
 
-                {baneos.map((baneo) =>
-                  motivosVisibles[baneo.id] ? (
+                {bans.map((ban) =>
+                  motivosVisibles[ban.id] ? (
                     <tr
-                      key={`motivo-${baneo.id}`}
+                      key={`motivo-${ban.id}`}
                       className="reason-row"
                     >
                       <td colSpan="7">
                         <div className="reason-content">
                           <strong>Motivo del baneo:</strong>
-                          <p>{baneo.reason || "Sin motivo registrado."}</p>
+                          <p>{ban.reason || "Sin motivo registrado."}</p>
                         </div>
                       </td>
                     </tr>

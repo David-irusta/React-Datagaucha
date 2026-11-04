@@ -10,7 +10,7 @@ const NavBar = () => {
   return (
     <Navbar expand="lg" className="navbar-datagaucha">
       <Container>
-        <Navbar.Brand as={Link} to="/bans">
+        <Navbar.Brand as={Link} to="/home">
           DataGaucha
         </Navbar.Brand>
 
