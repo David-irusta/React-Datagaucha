@@ -148,12 +148,7 @@ const Home = () => {
         <div className="home-bans-header">
           <h2>Usuarios baneados</h2>
 
-          <button
-            type="button"
-            className="common-btn"
-            onClick={() => navigate("/bans")}
-            disabled={accionando}
-          >
+          <button type="button" className="common-btn" onClick={() => navigate("/bans")} disabled={accionando}>
             Crear baneo
           </button>
         </div>
@@ -195,36 +190,15 @@ const Home = () => {
                     </td>
 
                     <td>
-                      <button
-                        type="button"
-                        className="reason-btn"
-                        onClick={() => alternarMotivo(baneo.id)}
-                        aria-expanded={!!motivosVisibles[baneo.id]}
-                      >
-                        {motivosVisibles[baneo.id]
+                      <button type="button" className="reason-btn" onClick={() => alternarMotivo(baneo.id)} aria-expanded={!!motivosVisibles[baneo.id]}>                        {motivosVisibles[baneo.id]
                           ? "Ocultar motivo"
                           : "Ver motivo"}
                       </button>
                     </td>
-
-                    <td className="home-buttons">
-                      <button
-                        type="button"
-                        className="edit-btn"
-                        onClick={() => editarBaneo(baneo)}
-                        disabled={accionando}
-                      >
+                    <td className="home-buttons"><button type="button" className="edit-btn" onClick={() => editarBaneo(baneo)} disabled={accionando}>
                         Editar
                       </button>
-
-                      <button
-                        type="button"
-                        className="delete-btn"
-                        onClick={() => eliminarBaneo(baneo.id)}
-                        disabled={accionando}
-                      >
-                        Eliminar
-                      </button>
+                      <button type="button" className="delete-btn" onClick={() => eliminarBaneo(baneo.id)} disabled={accionando}>Eliminar</button>
                     </td>
                   </tr>
                 ))}
@@ -246,11 +220,7 @@ const Home = () => {
                 )}
               </tbody>
             </table>
-
-            <Paginator
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
+            <Paginator currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage}
             />
           </div>
         )}

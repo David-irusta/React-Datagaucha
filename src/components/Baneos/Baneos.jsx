@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import Swal from "sweetalert2";
@@ -172,18 +171,14 @@ const Baneos = () => {
         title: editando ? "Baneo actualizado" : "Baneo creado",
         text:
           response?.message ||
-          (editando
-            ? "Los datos se modificaron correctamente."
-            : "Usuario baneado correctamente."),
+          (editando ? "Los datos se modificaron correctamente." : "Usuario baneado correctamente."),
       });
 
       navigate("/home");
     } catch (error) {
       setError(
         error.message ||
-        (editando
-          ? "No se pudo actualizar el baneo."
-          : "No se pudo crear el baneo.")
+        (editando? "No se pudo actualizar el baneo.": "No se pudo crear el baneo.")
       );
     } finally {
       setLoading(false);
@@ -207,52 +202,21 @@ const Baneos = () => {
           <h2>
             {editando ? "Editar baneo" : "Crear nuevo baneo"}
           </h2>
-
           <Errors mensaje={error} />
-
           <label htmlFor="userId">ID del usuario</label>
-          <input
-            id="userId"
-            type="number"
-            min="1"
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
-            placeholder="Ingresá el ID del usuario"
-            disabled={editando}
-            required
+          <input id="userId" type="number" min="1" value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="Ingresá el ID del usuario" disabled={editando} required
           />
 
           <label htmlFor="reason">Motivo del baneo</label>
-          <textarea
-            id="reason"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            maxLength={500}
-            placeholder="Ingresá el motivo del baneo"
-            required
+          <textarea id="reason" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} placeholder="Ingresá el motivo del baneo" required
           />
-
           <label htmlFor="bannedAt">Fecha desde</label>
-          <input
-            id="bannedAt"
-            type="datetime-local"
-            value={bannedAt}
-            onChange={(e) => setBannedAt(e.target.value)}
-            required
-          />
-
+          <input id="bannedAt" type="datetime-local" value={bannedAt} onChange={(e) => setBannedAt(e.target.value)} required />
           <label htmlFor="expiresAt">Fecha hasta</label>
-          <input
-            id="expiresAt"
-            type="datetime-local"
-            value={expiresAt}
-            onChange={(e) => setExpiresAt(e.target.value)}
-          />
-
+          <input id="expiresAt" type="datetime-local" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)}/>
           <small>
             Dejá la fecha hasta vacía si el baneo no tiene vencimiento.
           </small>
-
           <button type="submit" disabled={loading}>
             {loading
               ? "Guardando..."
@@ -260,7 +224,6 @@ const Baneos = () => {
                 ? "Guardar cambios"
                 : "Crear baneo"}
           </button>
-
           <button
             type="button"
             onClick={() => navigate("/home")}
