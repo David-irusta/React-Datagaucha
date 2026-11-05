@@ -3,10 +3,5 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh;
-}
-
-.error-404 img {
-    max-width: 100%;
-    height: auto;
+    min-height: 690px;
 }

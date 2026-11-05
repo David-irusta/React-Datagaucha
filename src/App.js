@@ -4,7 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 import NavBar from "./components/NavBar/NavBar";
 import Home from "./components/Home/Home";
-import Baneos from "./components/Baneos/Baneos";
+import Baneos from "./components/Bans/Bans";
 import Users from "./components/Users/Users";
 import Errors from "./components/Errors/Errors"
 import Main from "./components/Main/Main";
@@ -13,7 +13,6 @@ function App() {
   return (
     <BrowserRouter>
       <NavBar />
-
       <Routes>
         <Route path="/" element={<Main />}>
           <Route index element={<Navigate to="/home" replace />} />

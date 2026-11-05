@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import Swal from "sweetalert2";
-import "./Baneos.css";
+import "./Bans.css";
 import "../Errors/Errors.css";
 import Errors from "../Errors/Errors";
 
@@ -38,68 +38,67 @@ const request = async (endpoint, options = {}) => {
   return data;
 };
 
-// Convertir fecha para el input datetime-local.
-const convertirFechaLocal = (fecha) => {
-  if (!fecha) return "";
+const convertLocalDate = (date) => {
+  if (!date) return "";
 
-  const date = new Date(fecha);
+  const dateObject = new Date(date);
 
-  if (Number.isNaN(date.getTime())) return "";
+  if (Number.isNaN(dateObject.getTime())) return "";
 
-  const offset = date.getTimezoneOffset() * 60000;
+  const offset = dateObject.getTimezoneOffset() * 60000;
 
-  return new Date(date.getTime() - offset)
+  return new Date(dateObject.getTime() - offset)
     .toISOString()
     .slice(0, 16);
 };
 
-const Baneos = () => {
+const Bans = () => {
   const { idBan } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const baneo = location.state?.baneo;
-  const editando = Boolean(idBan);
+  const ban = location.state?.ban;
+  const editBan = Boolean(idBan);
 
   const [userId, setUserId] = useState(
-    baneo?.userId?.toString() || ""
+    ban?.userId?.toString() || ""
   );
-  const [reason, setReason] = useState(baneo?.reason || "");
+  const [reason, setReason] = useState(ban?.reason || "");
   const [bannedAt, setBannedAt] = useState(
-    convertirFechaLocal(baneo?.bannedAt)
+    convertLocalDate(ban?.bannedAt)
   );
   const [expiresAt, setExpiresAt] = useState(
-    convertirFechaLocal(baneo?.expiresAt)
+    convertLocalDate(ban?.expiresAt)
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Cargar los datos recibidos desde Home.
   useEffect(() => {
-    if (baneo) {
-      setUserId(baneo.userId?.toString() || "");
-      setReason(baneo.reason || "");
-      setBannedAt(convertirFechaLocal(baneo.bannedAt));
-      setExpiresAt(convertirFechaLocal(baneo.expiresAt));
+    if (ban) {
+      setUserId(ban.userId?.toString() || "");
+      setReason(ban.reason || "");
+      setBannedAt(convertLocalDate(ban.bannedAt));
+      setExpiresAt(convertLocalDate(ban.expiresAt));
     }
-  }, [baneo]);
+  }, [ban]);
 
   useEffect(() => {
-    if (editando && !baneo) {
+    if (editBan && !ban) {
       setError("No se encontraron los datos del baneo que quieres editar");
     }
-  }, [editando, baneo]);
+  }, [editBan, ban]);
 
-  const guardarBaneo = async (e) => {
+  const saveBan = async (e) => {
     e.preventDefault();
+    setError("");
 
-    const usuarioABanearId = Number(userId);
+    const userBanID = Number(userId);
 
     if (
-      !editando &&
+      !editBan &&
       (!userId ||
-        !Number.isInteger(usuarioABanearId) ||
-        usuarioABanearId <= 0)
+        !Number.isInteger(userBanID) ||
+        userBanID <= 0)
     ) {
       setError("Debes ingresar un ID valido");
       return;
@@ -115,23 +114,23 @@ const Baneos = () => {
       return;
     }
 
-    const fechaInicio = new Date(bannedAt);
+    const startDate = new Date(bannedAt);
 
-    if (Number.isNaN(fechaInicio.getTime())) {
+    if (Number.isNaN(startDate.getTime())) {
       setError("Debés ingresar una fecha inicial válida.");
       return;
     }
 
-    let fechaFin = null;
+    let endDate = null;
 
     if (expiresAt) {
-      fechaFin = new Date(expiresAt);
+      endDate = new Date(expiresAt);
 
       if (
-        Number.isNaN(fechaFin.getTime()) ||
-        fechaFin <= fechaInicio
+        Number.isNaN(endDate.getTime()) ||
+        endDate <= startDate
       ) {
-        setError("la fecha de caducidad debe de ser posterior a la de inicio");
+        setError("La fecha de caducidad debe ser posterior a la de inicio.");
         return;
       }
     }
@@ -139,46 +138,48 @@ const Baneos = () => {
     setLoading(true);
 
     try {
-      const datos = {
+      const data = {
         reason: reason.trim(),
-        bannedAt: fechaInicio.toISOString(),
-        expiresAt: fechaFin
-          ? fechaFin.toISOString()
+        bannedAt: startDate.toISOString(),
+        expiresAt: endDate
+          ? endDate.toISOString()
           : null,
       };
 
       let response;
 
-      if (editando) {
-        // Actualizar un baneo existente.
+      if (editBan) {
         response = await request(`/ban/${idBan}`, {
           method: "PUT",
-          body: JSON.stringify(datos),
+          body: JSON.stringify(data),
         });
       } else {
-        // Crear un nuevo baneo.
         response = await request("/ban", {
           method: "POST",
           body: JSON.stringify({
-            userId: usuarioABanearId,
-            ...datos,
+            userId: userBanID,
+            ...data,
           }),
         });
       }
 
       await Swal.fire({
         icon: "success",
-        title: editando ? "Baneo actualizado" : "Baneo creado",
+        title: editBan ? "Baneo actualizado" : "Baneo creado",
         text:
           response?.message ||
-          (editando ? "Los datos se modificaron correctamente." : "Usuario baneado correctamente."),
+          (editBan
+            ? "Los datos se modificaron correctamente."
+            : "Usuario baneado correctamente."),
       });
 
       navigate("/home");
     } catch (error) {
       setError(
         error.message ||
-        (editando? "No se pudo actualizar el baneo.": "No se pudo crear el baneo.")
+        (editBan
+          ? "No se pudo actualizar el baneo."
+          : "No se pudo crear el baneo.")
       );
     } finally {
       setLoading(false);
@@ -187,47 +188,39 @@ const Baneos = () => {
 
   return (
     <main className="bans-container">
-
-      {editando && !baneo && (
+      {editBan && !ban && (
         <div className="error-404">
-          <img
-            src="/images/error404quess.jpg"
-            alt="Error 404 - Página no encontrada"
-          />
         </div>
-      )}
-
-      {(!editando || baneo) && (
-        <form className="ban-form" onSubmit={guardarBaneo}>
+        )}
+      {(!editBan || ban) && (
+        <form className="ban-form" onSubmit={saveBan}>
           <h2>
-            {editando ? "Editar baneo" : "Crear nuevo baneo"}
+            {editBan ? "Editar baneo" : "Crear nuevo baneo"}
           </h2>
           <Errors mensaje={error} />
           <label htmlFor="userId">ID del usuario</label>
-          <input id="userId" type="number" min="1" value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="Ingresá el ID del usuario" disabled={editando} required
+          <input id="userId" type="number" min="1" value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="Ingresá el ID del usuario" disabled={editBan} required
           />
-
           <label htmlFor="reason">Motivo del baneo</label>
           <textarea id="reason" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} placeholder="Ingresá el motivo del baneo" required
           />
           <label htmlFor="bannedAt">Fecha desde</label>
-          <input id="bannedAt" type="datetime-local" value={bannedAt} onChange={(e) => setBannedAt(e.target.value)} required />
+          <input id="bannedAt" type="datetime-local" value={bannedAt} onChange={(e) => setBannedAt(e.target.value)} required
+          />
           <label htmlFor="expiresAt">Fecha hasta</label>
-          <input id="expiresAt" type="datetime-local" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)}/>
+          <input id="expiresAt" type="datetime-local" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)}
+          />
           <small>
             Dejá la fecha hasta vacía si el baneo no tiene vencimiento.
           </small>
           <button type="submit" disabled={loading}>
             {loading
               ? "Guardando..."
-              : editando
+              : editBan
                 ? "Guardar cambios"
                 : "Crear baneo"}
           </button>
-          <button
-            type="button"
-            onClick={() => navigate("/home")}
-            disabled={loading}
+          <button type="button" onClick={() => navigate("/home")} disabled={loading}
           >
             Cancelar
           </button>
@@ -237,4 +230,4 @@ const Baneos = () => {
   );
 };
 
-export default Baneos;
+export default Bans;

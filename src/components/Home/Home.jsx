@@ -18,11 +18,10 @@ const Home = () => {
   const navigate = useNavigate();
   const [bans, setBans] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [accionando, setActivating] = useState(false);
+  const [activating, setActivating] = useState(false);
   const [error, setError] = useState("");
-  const [motivosVisibles, setvisibleMotives] = useState({});
+  const [visibleMotives, setvisibleMotives] = useState({});
 
-  // Comunicarse con la API.
   const request = async (endpoint, options = {}) => {
     const response = await fetch(`${API_URL}${endpoint}`, {
       ...options,
@@ -33,36 +32,34 @@ const Home = () => {
     });
 
     const texto = await response.text();
-    let data = null;
+    let date = null;
 
     try {
-      data = texto ? JSON.parse(texto) : null;
+      date = texto ? JSON.parse(texto) : null;
     } catch {
-      data = null;
+      date = null;
     }
 
     if (!response.ok) {
       throw new Error(
-        data?.message || data?.mistake || `Error HTTP ${response.status}`
+        date?.message || date?.mistake || `Error HTTP ${response.status}`
       );
     }
 
-    return data;
+    return date;
   };
 
-  // Mostrar fechas en la tabla.
   const formatDate = (date) => {
     if (!date) return "Sin fecha";
 
-    const date = new Date(fecha);
+    const dateObject = new Date(date);
 
-    if (Number.isNaN(date.getTime())) 
+    if (Number.isNaN(dateObject.getTime())) 
       return "Fecha inválida";
 
-    return date.toLocaleString("es-AR");
+    return dateObject.toLocaleString("es-AR");
   };
 
-  // Obtener baneos.
   const applyBans = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -88,7 +85,6 @@ const Home = () => {
     applyBans();
   }, [applyBans]);
 
-  // Mostrar u ocultar motivo.
   const alternatePattern = (id) => {
     setvisibleMotives((current) => ({
       ...current,
@@ -101,10 +97,8 @@ const Home = () => {
       state: { ban },
     });
   };
-
-  // Eliminar baneo.
   const deleteBan = async (id) => {
-    const resultado = await Swal.fire({
+    const Result = await Swal.fire({
       title: "¿Eliminar este baneo?",
       text: "Esta acción no se puede deshacer.",
       icon: "warning",
@@ -114,7 +108,7 @@ const Home = () => {
       confirmButtonColor: "#d33",
     });
 
-    if (!resultado.isConfirmed) return;
+    if (!Result.isConfirmed) return;
 
     setActivating(true);
 
@@ -145,24 +139,18 @@ const Home = () => {
     <main className="home-container">
       <h1>Inicio</h1>
       <p>Panel de administración de DataGaucha</p>
-
       <section className="home-bans">
         <div className="home-bans-header">
           <h2>Usuarios baneados</h2>
-
-          <button type="button" className="common-btn" onClick={() => navigate("/bans")} disabled={accionando}>
+          <button type="button" className="common-btn" onClick={() => navigate("/bans")} disabled={activating}>
             Crear baneo
           </button>
         </div>
-
         {loading && <p>Cargando usuarios baneados...</p>}
-
         {!loading && <Errors mensaje={error} />}
-
         {!loading && !error && bans.length === 0 && (
           <p>No hay usuarios baneados.</p>
         )}
-
         {!loading && !error && bans.length > 0 && (
           <div className="home-table-container">
             <table className="home-table">
@@ -177,7 +165,6 @@ const Home = () => {
                   <th>Acciones</th>
                 </tr>
               </thead>
-
               <tbody>
                 {bans.map((ban) => (
                   <tr key={ban.id}>
@@ -190,23 +177,21 @@ const Home = () => {
                         ? formatDate(ban.expiresAt)
                         : "Sin vencimiento"}
                     </td>
-
                     <td>
-                      <button type="button" className="reason-btn" onClick={() => alternatePattern(ban.id)} aria-expanded={!!motivosVisibles[ban.id]}>                        {motivosVisibles[baneo.id]
+                      <button type="button" className="reason-btn" onClick={() => alternatePattern(ban.id)} aria-expanded={!!visibleMotives[ban.id]}> {visibleMotives[ban.id]
                           ? "Ocultar motivo"
                           : "Ver motivo"}
                       </button>
                     </td>
-                    <td className="home-buttons"><button type="button" className="edit-btn" onClick={() => editBan(ban)} disabled={accionando}>
+                    <td className="home-buttons"><button type="button" className="edit-btn" onClick={() => editBan(ban)} disabled={activating}>
                         Editar
                       </button>
-                      <button type="button" className="delete-btn" onClick={() => deleteBan(ban.id)} disabled={accionando}>Eliminar</button>
+                      <button type="button" className="delete-btn" onClick={() => deleteBan(ban.id)} disabled={activating}>Eliminar</button>
                     </td>
                   </tr>
                 ))}
-
                 {bans.map((ban) =>
-                  motivosVisibles[ban.id] ? (
+                  visibleMotives[ban.id] ? (
                     <tr
                       key={`motivo-${ban.id}`}
                       className="reason-row"
